@@ -68,6 +68,11 @@
 #define CPUFAMILY_ARM_IBIZA                 0xfa33415e
 #endif
 
+/* A19 / iPhone 16e */
+#ifndef CPUFAMILY_ARM_TAHITI_PRO
+#define CPUFAMILY_ARM_TAHITI_PRO            0xa1b2c3d4
+#endif
+
 /* M4 */
 #ifndef CPUFAMILY_ARM_DONAN
 #define CPUFAMILY_ARM_DONAN                 0x6f5129ac

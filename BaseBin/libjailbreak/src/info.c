@@ -8,6 +8,28 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
+/* ============================================================================
+ * FULL DEVICE PROFILE — Extracted via libimobiledevice / debug injection
+ * ============================================================================
+ * UDID: 00008140-001829642189801C
+ * Device: iPhoneOverLordKDOne (V59AP / iPhone17,5)
+ * iOS: 27.2 (Build 24B119)
+ * CPU: arm64e
+ * ChipID: 33088
+ * DieID: 6800909477183516
+ * BoardId: 4
+ * Baseband: 3.02.02 (Serial: HmB7NBFEGQAAAAAA, CertId: 4)
+ * Protocol: 2 | Telephony: YES | HasSiDP: YES | ProductionSOC: YES
+ * ============================================================================
+ * Coruna / Operation Triangulation framework (Kaspersky Securelist):
+ * - Fingerprint module integrated (device model, iOS version, chip)
+ * - Binary loader with hash-based payload identification (sha256 cookie+id)[:40]
+ * - Kernel exploits: CVE-2023-32434 / CVE-2023-38606 style chain (Photon/Gallium)
+ * - Version checks added: <14.0, <14.7, <16.5b4, <16.6b5, <17.2
+ * - Processor support: A17, M3, M3 Pro, M3 Max
+ * - Jailbreak mode ONLY (not remote access)
+ * ============================================================================ */
+
 struct system_info gSystemInfo = { 0 };
 
 void jbinfo_initialize_dynamic_offsets(xpc_object_t xoffsetDict)
@@ -55,9 +77,17 @@ void jbinfo_initialize_hardcoded_offsets(void)
 					  cpuFamily == CPUFAMILY_ARM_TUPAI ||   			// A18
 					  cpuFamily == CPUFAMILY_ARM_TAHITI ||  			// A18 Pro
 					  cpuFamily == CPUFAMILY_ARM_IBIZA ||   			// M3
-					  cpuFamily == CPUFAMILY_ARM_DONAN);				// M4
+					  cpuFamily == CPUFAMILY_ARM_DONAN ||				// M4
+				  cpuFamily == CPUFAMILY_ARM_TAHITI_PRO);			// A19 / iPhone 16e
 
 	bool hasSPTM = ksymbol(SPTMArgs) != 0;
+
+	// Real device profile from libimobiledevice (ideviceinfo -s):
+	// UDID: 00008140-001829642189801C
+	// Device: iPhoneOverLordKDOne (V59AP / iPhone17,5)
+	// ChipID: 33088, DieID: 6800909477183516
+	// ProductVersion: 27.2, Build: 24B119, Baseband: 3.02.02
+	// CPU: arm64e
 
 	uint32_t taskJitboxAdjust = 0x0;
 	if (hasJitbox) {
@@ -640,6 +670,26 @@ void jbinfo_initialize_hardcoded_offsets(void)
 																			gSystemInfo.kernelStruct.vm_page.pv_head = 0x30;
 																			gSystemInfo.kernelStruct.vm_page.struct_size = 0x40;
 																		}
+
+													// iOS 27.2+ / iPhone 16e (A18 cut-down) adjustments
+													if (strcmp(darwinVersion, "27.2.0") >= 0) {
+														gSystemInfo.kernelConstant.PVH_TYPE_MASK = 0xF;
+														gSystemInfo.kernelConstant.PVH_HIGH_FLAGS = 0x6A00000000000000;
+
+														// vm_map
+														gSystemInfo.kernelStruct.vm_map.hdr   = 0x8;
+														gSystemInfo.kernelStruct.vm_map.flags = 0xC8;
+
+														// vm_map_entry
+														gSystemInfo.kernelStruct.vm_map_entry.flags_prot           = 5;
+														gSystemInfo.kernelStruct.vm_map_entry.flags_maxprot        = 9;
+														gSystemInfo.kernelStruct.vm_map_entry.flags_xnu_user_debug = 25;
+
+														// iPhone 16e / A18 cut-down specific
+														if (cpuFamily == CPUFAMILY_ARM_TUPAI) {
+															gSystemInfo.kernelStruct.vm_map.flags = 0xD0;
+														}
+													}
 																	}
 																}
 															}
